@@ -83,7 +83,7 @@ void setDarkmode(){
 void setAnalogClock(){
   M5.Speaker.tone(661, 100);    //Set the speaker to tone at 661Hz for 1000ms
    if(analogState == false){
-   // digitalState = false;
+    digitalState = !digitalState;
     analogState = true;
       M5.Lcd.clear();
    }else{
@@ -92,19 +92,37 @@ void setAnalogClock(){
    } 
 }
 
+/*
+ * void setAnalog() {
+  MS.Speaker.tone(661, 100);
+
+  if (analogState == true) return;
+  
+  analogState = !analogState;
+  digitalState = !analogState;
+  M5.Lcd.clear();
+  }
+ */
 void setDigitalClock(){
     Serial.printf("\n setDigitalClock call \n");
-    //M5.Speaker.tone(661, 100);    //Set the speaker to tone at 661Hz for 1000ms
+    M5.Speaker.tone(661, 100);    //Set the speaker to tone at 661Hz for 1000ms
     if(digitalState == false){
       digitalState = true;
-      //analogState = false;
+      analogState = false;
+        M5.Lcd.clear();
+    }else{
+      analogState = false;
       M5.Lcd.clear();
-   }else{
-    digitalState == false;
-    M5.Lcd.clear();
-   }
-}
+    }
+      
+    
+  M5.Lcd.clear();
 
+   
+}
+void setStopUhr(){
+  stopUhrState = !stopUhrState; 
+}
 
 void LightSensorData(){
   uint32_t pin_data;
@@ -125,6 +143,7 @@ void LightSensorData(){
 }
 
 void draw_info(){
+  M5.Lcd.clear();
   M5.Lcd.fillScreen(darkmode ? nightDesign.background : defaultDesign.background );
   M5.Lcd.setCursor(50,100);
   M5.Lcd.setTextSize(1);
@@ -135,7 +154,7 @@ void draw_info(){
   M5.Lcd.printf("Press (3)- Switch \n \t \t \t \t \t \t \t \t \t \t Night Mode");
   M5.Lcd.printf("Press (3- 2 sec) - Info");
 }
-void StopUhr(){
+void stopUhr(){
     if(millis() > time_now + period){
       time_now = millis();
       timer.incrementTimer();
@@ -157,6 +176,7 @@ void run_digital_clock(){
 }
 
 void draw_analog_clock(){
+   M5.Lcd.fillScreen(darkmode ? nightDesign.background : defaultDesign.background );
   uint16_t R_OUTER = 100,R_INNER = 90;
   uint16_t pos_x,pos_y;
   uint16_t x,y;
@@ -233,14 +253,15 @@ void setup() {
    //connect to NTP server
    timeClient.begin();
 
-   attachInterrupt(GPIO_NUM_39, setDigitalClock ,RISING); // Button A
-   attachInterrupt(GPIO_NUM_38, setAnalogClock ,RISING); // Button B
-   attachInterrupt(GPIO_NUM_37, setDarkmode ,RISING); // Button C
+  // attachInterrupt(GPIO_NUM_39, setDigitalClock ,RISING); // Button A
+  // attachInterrupt(GPIO_NUM_38, setAnalogClock ,RISING); // Button B
+  // attachInterrupt(GPIO_NUM_37, setDarkmode ,RISING); // Button C
 
 }
 
 void loop() {
   M5.update(); 
+  
   timeClient.update();
   if(millis() > time_now + period){
     time_now = millis();
@@ -249,19 +270,33 @@ void loop() {
     Serial.printf("A -> digital mode: %d -",digitalState);
     Serial.printf(" B -> analog mode: %d  -", analogState);
     Serial.printf(" C -> darkmode: %d\n",darkmode);
+    
+    if(M5.BtnA.isPressed()){
+       setDigitalClock();
+    }
+     if (M5.BtnB.pressedFor(2000)){
+      draw_info();
+    }
+     if(M5.BtnB.isPressed()){
+     setAnalogClock();
+    }
+    
+     if(M5.BtnC.isPressed()){
+      setDarkmode();
+    }
+    if (M5.BtnB.pressedFor(2000)){
+      setStopUhr();
+    }
+    
     if(analogState){
        analog_init();  
     }
     if(digitalState){
       run_digital_clock();
     }
-    //if(stopUhrState){
-    //  run_digital_clock();
-      
-    //}
-    //if (M5.BtnA.pressedFor(2000)) {
-    //  StopUhr();
-    //}
+    if(stopUhrState){
+      stopUhr();
+    }
     
   }
 }
